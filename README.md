@@ -1,0 +1,1 @@
+Trueque Tide is a lightweight, offline-first micro-economy system designed for rural communities where traditional financial infrastructure does not reach. It transforms contribution into value and enables local circular economies without banks, bureaucracy, or internet dependency.
