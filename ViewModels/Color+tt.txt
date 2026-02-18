@@ -1,0 +1,8 @@
+import SwiftUI
+
+extension Color {
+    static let agave = Color(red: 107/255, green: 170/255, blue: 117/255)
+    static let agaveSoft = Color(red: 159/255, green: 211/255, blue: 166/255)
+    static let offWhite = Color(red: 244/255, green: 241/255, blue: 234/255)
+    static let darkText = Color(red: 28/255, green: 28/255, blue: 28/255)
+}
