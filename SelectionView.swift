@@ -41,7 +41,7 @@ struct SelectionView: View {
                 // COMMUNITY
                 
                 VStack(spacing: 8) {
-                    s
+                    
                     Button {
                         showCommunities = true
                     } label: {
