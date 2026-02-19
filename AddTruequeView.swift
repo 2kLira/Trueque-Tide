@@ -19,7 +19,7 @@ struct AddTruequeView: View {
     
     var body: some View {
         
-        NavigationStack {
+        NavigationView {
             
             VStack(spacing: 20) {
                 
@@ -33,25 +33,28 @@ struct AddTruequeView: View {
                     .keyboardType(.numberPad)
                     .textFieldStyle(.roundedBorder)
                 
-                Button("Add Trueque") {
-                    
-                    if let value = Int(tokens) {
-                        store.addTrueque(
-                            title: title,
-                            description: description,
-                            tokens: value
-                        )
-                        dismiss()
-                    }
-                }
-                .padding()
+                Spacer()
             }
             .padding()
             .navigationTitle("New Trueque")
             .toolbar {
+                
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Back") {
+                    Button("Cancel") {
                         dismiss()
+                    }
+                }
+                
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Add") {
+                        if let tokenValue = Int(tokens) {
+                            store.addTrueque(
+                                title: title,
+                                description: description,
+                                tokens: tokenValue
+                            )
+                            dismiss()
+                        }
                     }
                 }
             }

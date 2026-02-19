@@ -8,9 +8,9 @@
 
 import Foundation
 
-enum TaskStatus {
-    case open
-    case negotiating
-    case agreed
-    case completed
+enum TruequeStatus: String {
+    case active
+    case countered
+    case accepted
+    case rejected
 }

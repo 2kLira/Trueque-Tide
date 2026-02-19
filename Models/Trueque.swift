@@ -10,8 +10,10 @@ import Foundation
 
 struct Trueque: Identifiable {
     let id = UUID()
-    let title: String
-    let description: String
-    let tokens: Int
-    let owner: String
+    var title: String
+    var description: String
+    var tokens: Int
+    var owner: String
+    var status: TruequeStatus = .active
+    var lastCounterBy: String? = nil
 }
