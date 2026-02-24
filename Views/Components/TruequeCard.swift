@@ -10,121 +10,183 @@ import SwiftUI
 import UIKit
 
 struct TruequeCard: View {
-    
+
     var trueque: Trueque
     var currentUser: String
-    
+    var currentUserBalance: Int
+    var ownerBalance: Int
+
     var onAccept: () -> Void
     var onReject: () -> Void
     var onCounter: () -> Void
-    
+
+    private var canAfford: Bool {
+        currentUserBalance >= trueque.tokens
+    }
+
     var body: some View {
-        
-        VStack(alignment: .leading, spacing: 12) {
-            
+
+        VStack(alignment: .leading, spacing: 14) {
+
             HStack {
                 VStack(alignment: .leading, spacing: 4) {
                     Text(trueque.title)
                         .font(.headline)
-                    
+
                     Text(trueque.description)
                         .font(.caption)
                         .foregroundColor(.gray)
+
+                    Text("Owner Balance: \(ownerBalance) TT")
+                        .font(.caption2)
+                        .foregroundColor(.oceanBase.opacity(0.6))
                 }
-                
+
                 Spacer()
-                
+
                 Text("\(trueque.tokens) TT")
                     .font(.subheadline)
                     .foregroundColor(.oceanAccent)
-                    .animation(.easeInOut(duration: 0.25), value: trueque.tokens)
             }
-            
+
             statusSection
         }
         .padding()
         .background(backgroundColor)
-        .clipShape(RoundedRectangle(cornerRadius: 18))
+        .clipShape(RoundedRectangle(cornerRadius: 22))
         .shadow(color: .black.opacity(0.05), radius: 8)
-        .animation(.easeInOut(duration: 0.3), value: trueque.status)
+        .animation(.easeInOut(duration: 0.25), value: trueque.status)
     }
-    
+
     private var backgroundColor: Color {
         switch trueque.status {
         case .countered:
-            return Color.orange.opacity(0.1)
+            return Color.orange.opacity(0.08)
         default:
             return Color.white
         }
     }
-    
+
     @ViewBuilder
     private var statusSection: some View {
-        
+
         if trueque.owner == currentUser {
-            
+
             HStack {
                 Text("Your Trueque")
                     .font(.caption)
                     .foregroundColor(.gray)
-                
+
                 Spacer()
-                
+
                 statusBadge
             }
-            
+
         } else {
-            
+
             switch trueque.status {
-                
+
             case .active:
-                HStack {
-                    Button("Accept") { onAccept() }
-                    Spacer()
-                    Button("Counter") { onCounter() }
-                    Spacer()
-                    Button("Reject") { onReject() }
+                HStack(spacing: 10) {
+
+                    glassButton(
+                        title: "Accept",
+                        color: .green,
+                        disabled: !canAfford
+                    ) {
+                        onAccept()
+                    }
+
+                    glassButton(
+                        title: "Counter",
+                        color: .orange,
+                        disabled: false
+                    ) {
+                        onCounter()
+                    }
+
+                    glassButton(
+                        title: "Reject",
+                        color: .red,
+                        disabled: false
+                    ) {
+                        onReject()
+                    }
                 }
-                .font(.caption)
-                
+
             case .countered:
-                HStack {
+                HStack(spacing: 10) {
+
                     statusBadge
+
                     Spacer()
-                    Button("Accept") { onAccept() }
-                    Spacer()
-                    Button("Reject") { onReject() }
+
+                    glassButton(
+                        title: "Accept",
+                        color: .green,
+                        disabled: !canAfford
+                    ) {
+                        onAccept()
+                    }
+
+                    glassButton(
+                        title: "Reject",
+                        color: .red,
+                        disabled: false
+                    ) {
+                        onReject()
+                    }
                 }
-                .font(.caption)
-                
+
             case .accepted, .rejected:
                 statusBadge
             }
         }
     }
-    
+
+    private func glassButton(
+        title: String,
+        color: Color,
+        disabled: Bool,
+        action: @escaping () -> Void
+    ) -> some View {
+
+        Button(action: action) {
+            Text(title)
+                .font(.system(size: 13, weight: .medium))
+                .padding(.vertical, 8)
+                .padding(.horizontal, 14)
+                .background(
+                    .ultraThinMaterial
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 18)
+                        .stroke(color.opacity(0.6), lineWidth: 1)
+                )
+                .clipShape(RoundedRectangle(cornerRadius: 18))
+                .foregroundColor(color)
+                .opacity(disabled ? 0.4 : 1)
+        }
+        .disabled(disabled)
+    }
+
     private var statusBadge: some View {
-        
+
         Group {
             switch trueque.status {
-                
+
             case .countered:
-                if trueque.lastCounterBy == currentUser {
-                    Text("You countered")
-                        .foregroundColor(.orange)
-                } else {
-                    Text("Countered")
-                        .foregroundColor(.orange)
-                }
-                
+                Text("Countered")
+                    .foregroundColor(.orange)
+
             case .accepted:
                 Text("Accepted")
                     .foregroundColor(.green)
-                
+
             case .rejected:
                 Text("Rejected")
                     .foregroundColor(.red)
-                
+
             default:
                 EmptyView()
             }
