@@ -6,16 +6,12 @@
 //
 
 
-//
-//  CommunityNetworkView.swift
-//  TruequeTide
-//
-
 import SwiftUI
 
 struct CommunityNetworkView: View {
 
     @ObservedObject var store: TruequeStore
+    @Environment(\.horizontalSizeClass) private var sizeClass
 
     @State private var animatePulse = false
     @State private var lastLedgerCount = 0
@@ -31,91 +27,138 @@ struct CommunityNetworkView: View {
             )
             .ignoresSafeArea()
 
-            VStack(spacing: 14) {
-
-                headerMetrics
-
-                GeometryReader { geo in
-
-                    let size = geo.size
-                    let users = store.selectedCommunity?.users ?? []
-                    let positions = organicCirclePositions(users: users, in: size)
-                    let connections = store.ledger
-
-                    ZStack {
-
-                        // Lines (under nodes)
-                        ForEach(connections) { e in
-                            if let p1 = positions[e.fromUser], let p2 = positions[e.toUser] {
-                                NetworkEdge(
-                                    from: p1,
-                                    to: p2,
-                                    tokens: e.tokens,
-                                    trust: store.communityTrust,
-                                    pulse: animatePulse
-                                )
-                            }
-                        }
-
-                        // Nodes
-                        ForEach(users) { u in
-                            if let p = positions[u.id] {
-                                NetworkNode(
-                                    name: u.name,
-                                    balance: u.tokenBalance,
-                                    trust: store.communityTrust
-                                )
-                                .position(p)
-                            }
-                        }
-                    }
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .onChange(of: store.ledger.count) { newCount in
-                        if newCount > lastLedgerCount {
-                            triggerPulse()
-                        }
-                        lastLedgerCount = newCount
-                    }
-                    .onAppear {
-                        lastLedgerCount = store.ledger.count
-                    }
-                }
-                .padding(.horizontal, 18)
-                .padding(.bottom, 12)
-
-                Spacer(minLength: 8)
+            if sizeClass == .regular {
+                ipadLayout
+            } else {
+                iphoneLayout
             }
         }
     }
+}
 
-    // MARK: - Header metrics
+//////////////////////////////////////////////////////////////
+// MARK: - Layouts
+//////////////////////////////////////////////////////////////
+
+extension CommunityNetworkView {
+
+    private var ipadLayout: some View {
+
+        VStack(spacing: 24) {
+
+            headerMetrics
+                .frame(maxWidth: 1000)
+
+            GeometryReader { geo in
+                networkCanvas(in: geo.size)
+                    .frame(maxWidth: 1100)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            }
+        }
+        .padding(.horizontal, 40)
+        .padding(.top, 10)
+    }
+
+    private var iphoneLayout: some View {
+
+        VStack(spacing: 14) {
+
+            headerMetrics
+
+            GeometryReader { geo in
+                networkCanvas(in: geo.size)
+            }
+            .padding(.horizontal, 18)
+            .padding(.bottom, 12)
+
+            Spacer(minLength: 8)
+        }
+    }
+}
+
+//////////////////////////////////////////////////////////////
+// MARK: - Network Canvas
+//////////////////////////////////////////////////////////////
+
+extension CommunityNetworkView {
+
+    private func networkCanvas(in size: CGSize) -> some View {
+
+        let users = store.selectedCommunity?.users ?? []
+        let positions = organicCirclePositions(users: users, in: size)
+        let connections = store.ledger
+
+        return ZStack {
+
+            // Edges
+            ForEach(connections) { e in
+                if let p1 = positions[e.fromUser],
+                   let p2 = positions[e.toUser] {
+
+                    NetworkEdge(
+                        from: p1,
+                        to: p2,
+                        tokens: e.tokens,
+                        trust: store.communityTrust,
+                        pulse: animatePulse
+                    )
+                }
+            }
+
+            // Nodes
+            ForEach(users) { u in
+                if let p = positions[u.id] {
+                    NetworkNode(
+                        name: u.name,
+                        balance: u.tokenBalance,
+                        trust: store.communityTrust
+                    )
+                    .position(p)
+                }
+            }
+        }
+        .onChange(of: store.ledger.count) { newCount in
+            if newCount > lastLedgerCount {
+                triggerPulse()
+            }
+            lastLedgerCount = newCount
+        }
+        .onAppear {
+            lastLedgerCount = store.ledger.count
+        }
+    }
+}
+
+//////////////////////////////////////////////////////////////
+// MARK: - Header
+//////////////////////////////////////////////////////////////
+
+extension CommunityNetworkView {
 
     private var headerMetrics: some View {
 
-        VStack(spacing: 10) {
+        VStack(spacing: 14) {
 
             HStack {
                 Text("Community Network")
-                    .font(.system(size: 16, weight: .medium))
+                    .font(.system(size: sizeClass == .regular ? 20 : 16, weight: .medium))
                     .foregroundColor(.oceanBase.opacity(0.85))
 
                 Spacer()
 
                 Text("\(Int(store.communityTrust * 100))% Trust")
-                    .font(.system(size: 13, weight: .medium))
+                    .font(.system(size: 14, weight: .medium))
                     .foregroundColor(.oceanAccent)
             }
-            .padding(.horizontal)
-            .padding(.top, 6)
 
-            HStack(spacing: 12) {
+            HStack(spacing: 16) {
                 metricChip(title: "Exchanges", value: "\(store.totalExchanges)")
                 metricChip(title: "Circulated", value: "\(store.totalCirculated) TT")
                 metricChip(title: "People", value: "\(store.selectedCommunity?.users.count ?? 0)")
             }
-            .padding(.horizontal)
         }
-        .padding(.bottom, 4)
+        .padding(.horizontal)
+        .padding(.top, 12)
     }
 
     private func metricChip(title: String, value: String) -> some View {
@@ -123,15 +166,15 @@ struct CommunityNetworkView: View {
         VStack(alignment: .leading, spacing: 4) {
 
             Text(value)
-                .font(.system(size: 15, weight: .semibold))
+                .font(.system(size: sizeClass == .regular ? 18 : 15, weight: .semibold))
                 .foregroundColor(.oceanBase)
 
             Text(title)
                 .font(.caption2)
                 .foregroundColor(.oceanBase.opacity(0.55))
         }
-        .padding(.vertical, 10)
-        .padding(.horizontal, 12)
+        .padding(.vertical, 12)
+        .padding(.horizontal, 16)
         .background(.ultraThinMaterial)
         .clipShape(RoundedRectangle(cornerRadius: 18))
         .overlay(
@@ -140,15 +183,22 @@ struct CommunityNetworkView: View {
         )
         .frame(maxWidth: .infinity)
     }
+}
 
-    // MARK: - Organic circle positions (deterministic)
+//////////////////////////////////////////////////////////////
+// MARK: - Organic Circle Logic
+//////////////////////////////////////////////////////////////
+
+extension CommunityNetworkView {
 
     private func organicCirclePositions(users: [User], in size: CGSize) -> [UUID: CGPoint] {
 
         let n = max(users.count, 1)
         let center = CGPoint(x: size.width * 0.5, y: size.height * 0.52)
 
-        let baseRadius = min(size.width, size.height) * 0.34
+        let multiplier: CGFloat = sizeClass == .regular ? 0.40 : 0.34
+        let baseRadius = min(size.width, size.height) * multiplier
+
         let angleStep = (2 * Double.pi) / Double(n)
 
         var dict: [UUID: CGPoint] = [:]
@@ -179,11 +229,9 @@ struct CommunityNetworkView: View {
         }
     }
 
-    // MARK: - Deterministic hash helpers
-
     private struct HashPair {
-        let a: Double // 0..1
-        let b: Double // 0..1
+        let a: Double
+        let b: Double
     }
 
     private func stableHash(_ s: String) -> HashPair {
@@ -207,7 +255,9 @@ struct CommunityNetworkView: View {
     }
 }
 
-// MARK: - Edge
+//////////////////////////////////////////////////////////////
+// MARK: - Network Edge
+//////////////////////////////////////////////////////////////
 
 private struct NetworkEdge: View {
 
@@ -248,7 +298,9 @@ private struct NetworkEdge: View {
     }
 }
 
-// MARK: - Node
+//////////////////////////////////////////////////////////////
+// MARK: - Network Node
+//////////////////////////////////////////////////////////////
 
 private struct NetworkNode: View {
 

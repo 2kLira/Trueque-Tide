@@ -12,8 +12,7 @@ struct ContentView: View {
 
     @StateObject var store = TruequeStore()
 
-    @AppStorage("hasSeenOnboarding") private var hasSeenOnboarding = false
-
+    @State private var hasSeenOnboarding = false
     @State private var showStory = true
 
     var body: some View {

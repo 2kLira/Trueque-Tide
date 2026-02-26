@@ -14,14 +14,14 @@ struct DashboardView: View {
     @ObservedObject var store: TruequeStore
     var reset: () -> Void
 
+    @Environment(\.horizontalSizeClass) private var sizeClass
+
     @State private var counterTrueque: Trueque?
     @State private var showAddSheet = false
     @State private var showInsufficientBalanceAlert = false
 
-    // Balance pulse 🫂
     @State private var balancePulse = false
 
-    // Floating TT animation
     @State private var showFloatingTT = false
     @State private var floatingText = ""
     @State private var floatingColor: Color = .oceanAccent
@@ -33,71 +33,14 @@ struct DashboardView: View {
 
         ZStack(alignment: .topTrailing) {
 
-            VStack(spacing: 0) {
-
-                header
-
-                // Persistente (siempre visible)
-                CommunityMetricsHeader(store: store)
-
-                if let community = store.selectedCommunity,
-                   let user = store.selectedUser {
-
-                    WalletMiniHistory(
-                        entries: recentEntries(for: user),
-                        titleFor: { id in store.userName(for: id) }
-                    )
-                    .padding(.top, 2)
-
-                    ScrollView {
-                        VStack(spacing: 16) {
-                            ForEach(community.trueques) { trueque in
-                                TruequeCard(
-                                    trueque: trueque,
-                                    currentUser: user.name,
-                                    currentUserBalance: user.tokenBalance,
-                                    ownerBalance: balanceOfOwner(for: trueque),
-                                    onAccept: {
-                                        acceptWithEffects(trueque: trueque)
-                                    },
-                                    onReject: {
-                                        store.rejectTrueque(truequeID: trueque.id)
-                                    },
-                                    onCounter: {
-                                        counterTrueque = trueque
-                                    }
-                                )
-                            }
-                        }
-                        .padding()
-                    }
-
-                } else {
-                    Spacer()
-                    Text("Missing selection.")
-                        .foregroundColor(.gray)
-                    Spacer()
-                }
+            if sizeClass == .regular {
+                ipadLayout
+            } else {
+                iphoneLayout
             }
 
-            // Floating TT overlay (viaja hacia el 🫂)
             if showFloatingTT {
-                Text(floatingText)
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundColor(floatingColor)
-                    .padding(.vertical, 8)
-                    .padding(.horizontal, 12)
-                    .background(.ultraThinMaterial)
-                    .clipShape(Capsule())
-                    .overlay(
-                        Capsule()
-                            .stroke(floatingColor.opacity(0.45), lineWidth: 1)
-                    )
-                    .opacity(floatingOpacity)
-                    .scaleEffect(floatingScale)
-                    .offset(x: -18, y: floatingOffsetY)
-                    .padding(.top, 10)
-                    .padding(.trailing, 52)
+                floatingOverlay
             }
         }
         .sheet(isPresented: $showAddSheet) {
@@ -115,8 +58,105 @@ struct DashboardView: View {
             Text("You don’t have enough TT.")
         }
     }
+}
 
-    // MARK: - Header
+//////////////////////////////////////////////////////////////
+// MARK: - Layouts
+//////////////////////////////////////////////////////////////
+
+extension DashboardView {
+
+    private var ipadLayout: some View {
+
+        HStack(spacing: 32) {
+
+            leftColumn
+                .frame(maxWidth: 380)
+
+            Divider()
+
+            rightColumn
+        }
+        .padding(.horizontal, 40)
+        .padding(.top, 10)
+    }
+
+    private var iphoneLayout: some View {
+
+        VStack(spacing: 0) {
+
+            header
+
+            CommunityMetricsHeader(store: store)
+
+            if let user = store.selectedUser {
+                WalletMiniHistory(
+                    entries: recentEntries(for: user),
+                    titleFor: { store.userName(for: $0) }
+                )
+                .padding(.top, 2)
+            }
+
+            rightColumn
+        }
+    }
+
+    private var leftColumn: some View {
+
+        VStack(spacing: 20) {
+
+            header
+
+            CommunityMetricsHeader(store: store)
+
+            if let user = store.selectedUser {
+                WalletMiniHistory(
+                    entries: recentEntries(for: user),
+                    titleFor: { store.userName(for: $0) }
+                )
+            }
+
+            Spacer()
+        }
+    }
+
+    private var rightColumn: some View {
+
+        ScrollView {
+            VStack(spacing: 16) {
+
+                if let community = store.selectedCommunity,
+                   let user = store.selectedUser {
+
+                    ForEach(community.trueques) { trueque in
+                        TruequeCard(
+                            trueque: trueque,
+                            currentUser: user.name,
+                            currentUserBalance: user.tokenBalance,
+                            ownerBalance: balanceOfOwner(for: trueque),
+                            onAccept: { acceptWithEffects(trueque: trueque) },
+                            onReject: { store.rejectTrueque(truequeID: trueque.id) },
+                            onCounter: { counterTrueque = trueque }
+                        )
+                    }
+
+                } else {
+
+                    Text("Missing selection.")
+                        .foregroundColor(.gray)
+                        .padding(.top, 40)
+                }
+            }
+            .padding()
+        }
+    }
+}
+
+//////////////////////////////////////////////////////////////
+// MARK: - Header
+//////////////////////////////////////////////////////////////
+
+extension DashboardView {
 
     private var header: some View {
 
@@ -162,8 +202,40 @@ struct DashboardView: View {
             balancePulse = false
         }
     }
+}
 
-    // MARK: - Accept with effects
+//////////////////////////////////////////////////////////////
+// MARK: - Floating TT
+//////////////////////////////////////////////////////////////
+
+extension DashboardView {
+
+    private var floatingOverlay: some View {
+
+        Text(floatingText)
+            .font(.system(size: 14, weight: .semibold))
+            .foregroundColor(floatingColor)
+            .padding(.vertical, 8)
+            .padding(.horizontal, 12)
+            .background(.ultraThinMaterial)
+            .clipShape(Capsule())
+            .overlay(
+                Capsule()
+                    .stroke(floatingColor.opacity(0.45), lineWidth: 1)
+            )
+            .opacity(floatingOpacity)
+            .scaleEffect(floatingScale)
+            .offset(x: -18, y: floatingOffsetY)
+            .padding(.top, 10)
+            .padding(.trailing, 52)
+    }
+}
+
+//////////////////////////////////////////////////////////////
+// MARK: - Logic
+//////////////////////////////////////////////////////////////
+
+extension DashboardView {
 
     private func acceptWithEffects(trueque: Trueque) {
 
@@ -180,7 +252,6 @@ struct DashboardView: View {
         let after = store.selectedUser?.tokenBalance ?? before
         let delta = after - before
 
-        // (En Accept normalmente será negativo para el que acepta)
         floatingText = delta >= 0 ? "+\(delta) TT" : "\(delta) TT"
         floatingColor = delta >= 0 ? .green : .red
 
@@ -213,8 +284,6 @@ struct DashboardView: View {
         }
     }
 
-    // MARK: - Helpers
-
     private func balanceOfOwner(for trueque: Trueque) -> Int {
         store.selectedCommunity?
             .users
@@ -231,7 +300,9 @@ struct DashboardView: View {
     }
 }
 
-// MARK: - Wallet mini history
+//////////////////////////////////////////////////////////////
+// MARK: - Wallet Mini History
+//////////////////////////////////////////////////////////////
 
 private struct WalletMiniHistory: View {
 
@@ -251,11 +322,14 @@ private struct WalletMiniHistory: View {
             .padding(.horizontal)
 
             if entries.isEmpty {
+
                 Text("No transactions yet.")
                     .font(.caption)
                     .foregroundColor(.oceanBase.opacity(0.5))
                     .padding(.horizontal)
+
             } else {
+
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 12) {
                         ForEach(entries) { e in
@@ -316,7 +390,6 @@ private struct WalletEntryCard: View {
 
     private func shortDate(_ date: Date) -> String {
         let f = DateFormatter()
-        f.locale = Locale(identifier: "en_US_POSIX")
         f.dateFormat = "MMM d"
         return f.string(from: date)
     }
